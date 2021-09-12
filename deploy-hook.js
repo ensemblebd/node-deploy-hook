@@ -4,6 +4,7 @@
  * See config.js for email and port options
  *
 */
+require('./prototypes.js');
 
 var express = require('express'),
     compression = require('compression'),
@@ -18,11 +19,14 @@ var express = require('express'),
 
     app = express(),
     config = require('./config'),
+    sconfig = require('./config.secrets'),
 
     // port can be optionally configured (8888 by default)
     server = http.createServer(app).listen( config.port );
 
-
+if (sconfig) {
+    config.merge(sconfig);
+}
 
 // Allow node to be run with proxy passing
 app.enable('trust proxy');
@@ -32,9 +36,8 @@ app.use(compression());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-
 var sendMail = function(message){
-    var smtpTransport = nodemailer.createTransport("SMTP", config.email.transport);
+    var smtpTransport = nodemailer.createTransport("SMTP", config.email.transports[config.email.transport]);
     smtpTransport.sendMail({
         from: config.email.from,
         to: config.email.to,

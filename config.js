@@ -6,15 +6,18 @@ module.exports = {
         from: "node-deploy-hook",
         subjectOnSuccess: "Successfully updated repository",
         subjectOnError: "Failed to update respository",
-        transport: {
-            service: "Gmail",
-            auth: {
-                user: "somegmailuser@gmail.com",
-                pass: "somepass"
+        transports: {
+            sample: {
+                service: "Gmail",
+                auth: {
+                    user: "somegmailuser@gmail.com",
+                    pass: "somepass"
+                }
             }
-        }
+        },
+        transport: 'sample' 
     },
     port: 8888,
-    serverRoot: '/var/www/'
-
+    serverRoot: '/var/www/',
+    url_pass: '',
 };
