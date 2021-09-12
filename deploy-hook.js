@@ -16,12 +16,12 @@ var express = require('express'),
     
     cmd=require('node-cmd'),
     path = require("path"),
+    fs = require('fs'),
 
-    app = express(),
     config = require('./config'),
     sconfig = require('./config.secrets'),
 
-    // port can be optionally configured (8888 by default)
+    app = express(),
     server = http.createServer(app).listen( config.port );
 
 if (sconfig) {
@@ -50,24 +50,13 @@ var sendMail = function(message){
 };
 
 app.post("/", function(req, res){
-    var projectDir,
-        remoteBranch = req.params.remote_branch || 'origin',
-        localBranch = req.params.local_branch || 'master',
-        deployJSON, payload, ok;
-
-	ok = true;
-
-if(req.body.payload)
-	payload = JSON.parse(req.body.payload);
+    var projectDir, deployJSON, payload, valid = false, ok = true,
+        remoteBranch = req.query.remote_branch || 'origin',
+        localBranch = req.query.local_branch || 'master',
+        ;
 
     if(payload && payload.repository && payload.repository.name){        // POST request made by github service hook, use the repo name
         projectDir = path.normalize(config.serverRoot+payload.repository.name);
-    } else if(req.query.project){                                          // GET request made thru nginx proxy, use the appended project GET param
-        projectDir = path.normalize(config.serverRoot+req.query.project); 
-    } else {                                                                // Else assume it is this repo or installed here, and was hit directly
-        projectDir = __dirname;                             
-	res.end('Invalid request');
-	ok = false;
     }
 
 if(ok) {
