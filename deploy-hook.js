@@ -6,9 +6,14 @@
 */
 
 var express = require('express'),
+    compression = require('compression'),
+    errorhandler = require('errorhandler'),
+    bodyParser = require('body-parser'),
+
     http = require('http'),
     nodemailer = require("nodemailer"),
-    childprocess = require("child_process"),
+    
+    cmd=require('node-cmd'),
     path = require("path"),
 
     app = express(),
@@ -22,21 +27,10 @@ var express = require('express'),
 // Allow node to be run with proxy passing
 app.enable('trust proxy');
 
-// Logging config
-app.configure('local', function(){
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-});
-app.configure('development', function(){
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-});
-app.configure('production', function(){
-    app.use(express.errorHandler());
-});
-
-// Compression (gzip)
-app.use( express.compress() );
-app.use( express.methodOverride() );
-app.use( express.bodyParser() );            // Needed to parse POST data sent as JSON payload
+app.use(errorhandler());
+app.use(compression());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 
 var sendMail = function(message){
@@ -52,7 +46,7 @@ var sendMail = function(message){
     });
 };
 
-app.all("/deploy", function(req, res){
+app.post("/", function(req, res){
     var projectDir,
         remoteBranch = req.params.remote_branch || 'origin',
         localBranch = req.params.local_branch || 'master',
@@ -74,7 +68,7 @@ if(req.body.payload)
     }
 
 if(ok) {
-    var deploy = childprocess.exec("cd "+projectDir+" && git stash && git pull "+remoteBranch+" "+localBranch, function(err, stdout, stderr){
+    var deploy = cmd.runSync("cd "+projectDir+" && git stash && git pull "+remoteBranch+" "+localBranch, function(err, stdout, stderr){
         if(err){
             deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
             if(config.email.sendOnError) sendMail( deployJSON );
