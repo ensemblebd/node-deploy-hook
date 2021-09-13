@@ -60,7 +60,11 @@ axios.get(config.ipList.bitbucket).then((response) => {
 app.post(config.route, function(req, res){
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     var safe = ipRangeCheck(ip, whitelist);
-    console.log(ip, safe);
+    if (!safe) {
+        console.log('sender is not an authorized ip from a valid [bitbucket] or [github] origin.');
+        res.status(config.preferredPublicErrorCode).json({});
+        return;
+    }
 
     var projectDir, deployJSON, payload, repoName, 
         valid = false, ok=false, is_bitbucket = false,
@@ -84,31 +88,67 @@ app.post(config.route, function(req, res){
         }
         else ok = true;
     });
+    if (!ok) {
+        console.log('The server repo path is invalid: '+projectDir);
+        res.status(config.preferredPublicErrorCode).json({});
+        return;
+    }
 
-    if(ok) {
-
-
-        cmd.runSync(`cd ${projectDir}`);
-
-        if (config.repoIsWebroot) {
-            cmd.runSync(`git stash`);
-            cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
-                if(err){
-                    deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
-                    if(config.email.sendOnError) mailer.send( deployJSON );
-                } else {
-                    deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: stdout  };
-                    if(config.email.sendOnSuccess) mailer.send( deployJSON );
+    if (is_bitbucket) {
+        valid = (payload.push && payload.push.changes && payload.push.changes.length>0);
+        if (valid) {
+            valid = false;
+            for (let change of payload.push.changes) {
+                if (change.new.type==="branch" && change.new.name === branch) {
+                    valid = true;
+                    break;
                 }
-    
-                res.json( deployJSON );
-            });
+            }
+            if (!valid) {
+                console.log('[bitbucket] none of the commits('+payload.push.changes.length+') match the target branch: '+branch);
+                // output a soft error (200 ok to sender), but we will not take any actions.
+                res.json({});
+                return;
+            }
         }
-        else {
-            cmd.runSync(`git pull ${remote} ${branch}`);
+    }
+    else {
+        valid = (payload.ref && payload.commits && payload.commits.length>0);
+        if (payload.ref.indexOf(branch)==-1) {
+            console.log('[github] ref does not match the target branch: '+branch);
+            // output a soft error (200 ok to sender), but we will not take any actions.
+            res.json({});
+            return;
         }
-    } else {
-        
+    }
+    if (!valid) {
+        // reaching here means the payload is invalid or malformed. Should be very rare.
+        console.log('invalid payload received.');
+        res.status(config.preferredPublicErrorCode).json({});
+        return;
+    }
+
+
+    // now we take action..
+
+    cmd.runSync(`cd ${projectDir}`);
+
+    if (config.repoIsWebroot) {
+        cmd.runSync(`git stash`);
+        cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
+            if(err){
+                deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
+                if(config.email.sendOnError) mailer.send( deployJSON );
+            } else {
+                deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: stdout  };
+                if(config.email.sendOnSuccess) mailer.send( deployJSON );
+            }
+
+            res.json( deployJSON );
+        });
+    }
+    else {
+        cmd.runSync(`git pull ${remote} ${branch}`);
     }
 });
 
