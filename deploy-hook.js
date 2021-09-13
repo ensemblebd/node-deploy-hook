@@ -66,6 +66,8 @@ app.post(config.route, function(req, res){
         pass = req.query[config.passwordQueryField] || ''
         ;
 
+    payload = request.body;
+
     if(payload && payload.repository){        // POST request made by github service hook, use the repo name
         repoName = payload.repository.name;
         if (payload.repository.links && payload.repository.links.self) { // it's enough to assume bitbucket, the keys don't exist on github payloads. But i guess we could do an indexOf for the url.
