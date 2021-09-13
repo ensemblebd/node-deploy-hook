@@ -4,7 +4,7 @@ const axios = require('axios');
 module.exports = function(config) {
     let self = this;
     this.last_refresh = null;
-    this.whitelist = [];
+    this.whitelist = config.additionalCIDR || [];
 
     var refresh=function() {
         self.last_refresh = dayjs();
