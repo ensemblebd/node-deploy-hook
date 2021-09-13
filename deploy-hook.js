@@ -12,6 +12,8 @@ var express = require('express'),
     bodyParser = require('body-parser'),
 
     http = require('http'),
+    axios = require('axios'),
+    ipRangeCheck = require("ip-range-check"),
     
     cmd=require('node-cmd'),
     path = require("path"),
@@ -42,18 +44,40 @@ app.use(compression());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// load the acceptable source ip whitelists..
+var whitelist=[];
+axios.get('https://api.github.com/meta').then((response) => {
+    for(let cidr of response.data.hooks) {
+        whitelist.push(cidr);
+    }
+});
+axios.get('https://ip-ranges.atlassian.com').then((response) => {
+    for(let item of response.data.items) {
+        whitelist.push(item.cidr);
+    }
+});
+
 app.post("/", function(req, res){
-    var projectDir, deployJSON, payload, 
-        valid = false, ok=false,
+    var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    var safe = ipRangeCheck(ip, whitelist);
+    console.log(ip, safe);
+
+    var projectDir, deployJSON, payload, repoName, 
+        valid = false, ok=false, is_bitbucket = false,
         remoteBranch = req.query.remote_branch || 'origin',
         localBranch = req.query.local_branch || 'master'
         ;
 
-    if(payload && payload.repository && payload.repository.name){        // POST request made by github service hook, use the repo name
-        projectDir = path.normalize(config.repoRoot+payload.repository.name);
+    if(payload && payload.repository){        // POST request made by github service hook, use the repo name
+        repoName = payload.repository.name;
+        if (payload.repository.links && payload.repository.links.self) { // it's enough to assume bitbucket, the keys don't exist on github payloads. But i guess we could do an indexOf for the url.
+            is_bitbucket = true;
+            repoName = payload.repository.full_name; // name can have spaces in it, so with bitbucket we should use the fullname. Which will have a folder prefix:   username_or_team/real-repo-name-here
+        }
+        projectDir = path.normalize(config.repoRoot+repoName);
     }
 
-    // make sure we can even git pull here..
+    // make sure we can even git pull to the target folder..
     fs.access(projectDir, fs.constants.W_OK, function(err) {
         if(err) {
             console.log(err);
