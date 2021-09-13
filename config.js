@@ -29,6 +29,8 @@ module.exports = {
     ipList: {
         github: 'https://api.github.com/meta',
         bitbucket: 'https://ip-ranges.atlassian.com',
+        refreshInterval: 1,
+        refreshIntervalType: 'day'
     },
 
     verifySMTPOnBootup: false,

@@ -12,29 +12,31 @@ var express = require('express'),
     bodyParser = require('body-parser'),
 
     http = require('http'),
-    axios = require('axios'),
     ipRangeCheck = require("ip-range-check"),
     
     cmd=require('node-cmd'),
     path = require("path"),
     fs = require('fs'),
+    dayjs = require('dayjs'),
 
     config = require('./config'),
     sconfig = require('./config.secrets'),
 
     app = express(),
     server = http.createServer(app).listen( config.port )
-    mail = require('./mailer')
+    m_mailer = require('./mailer'),
+    m_whitelist = require('./whitelist')
     ;
 
 if (sconfig) {
     config.merge(sconfig);
 }
 
-var mailer = new mail(config);
+var mailer = new m_mailer(config);
 if (config.verifySMTPOnBootup) {
     mailer.verify();
 }
+var whitelist = new m_whitelist(config.ipList);
 
 // Allow node to be run with proxy passing
 app.enable('trust proxy');
@@ -44,20 +46,10 @@ app.use(compression());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// load the acceptable source ip whitelists..
-var whitelist=[];
-axios.get(config.ipList.github).then((response) => {
-    for(let cidr of response.data.hooks) {
-        whitelist.push(cidr);
-    }
-});
-axios.get(config.ipList.bitbucket).then((response) => {
-    for(let item of response.data.items) {
-        whitelist.push(item.cidr);
-    }
-});
 
 app.post(config.route, function(req, res){
+    whitelist.refreshIfNeeded();
+
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     var safe = ipRangeCheck(ip, whitelist);
     if (!safe) {

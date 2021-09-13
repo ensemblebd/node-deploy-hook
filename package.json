@@ -11,6 +11,7 @@
     "axios": "^0.21.4",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
+    "dayjs": "^1.10.7",
     "errorhandler": "^1.5.1",
     "express": ">=3.11.0",
     "ip-range-check": "^0.2.0",
