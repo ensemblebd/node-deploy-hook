@@ -101,7 +101,7 @@ app.post(config.route, function(req, res){
     }
 
     // make sure we can even git pull to the target folder..
-    fs.access(projectDir, fs.constants.W_OK, function(err) {
+    fs.accessSync(projectDir, fs.constants.W_OK, function(err) {
         if(err) {
             console.log(err);
         }
@@ -115,7 +115,7 @@ app.post(config.route, function(req, res){
     // let's also check the destination
     if (project_config.path) {
         ok = false;
-        fs.access(project_config.path, fs.constants.W_OK, function(err) {
+        fs.accessSync(project_config.path, fs.constants.W_OK, function(err) {
             if(err) {
                 console.log(err);
             }
