@@ -28,7 +28,7 @@ var express = require('express'),
 
 try {
     var sconfig = require('./config.custom');
-    config.merge(sconfig);console.log(config);
+    config.merge(sconfig);
 }catch(e){}
 
 var mailer = new m_mailer(config);
