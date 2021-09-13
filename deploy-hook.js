@@ -160,48 +160,50 @@ app.post(config.route, function(req, res){
 
 
     // now we take action since the repo path is fine, and the sender provided valid payload info for target branch..
-
-    let result = cmd.runSync(`cd ${projectDir}`);
+    let cmds = [];
+    cmds.push(`cd ${projectDir}`);
 
     for (let c of config.cmds.before) {
         if (project_config.syncToFolder) c=c.replace('$path',project_config.path);
         else c=c.replace('$path',projectDir);
-        result = cmd.runSync(c);
+        cmds.push(c);
     }
 
     if (!project_config.syncToFolder) {
-        result = cmd.runSync(`git stash`); // prevent changes from breaking the git pull.
-        result = cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
-            if(err){
-                deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
-                if(config.email.sendOnError) mailer.send( deployJSON );
-            } else {
-                deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: stdout  };
-                if(config.email.sendOnSuccess) mailer.send( deployJSON );
-
-                for (let c of config.cmds.success) {
-                    c=c.replace('$path', projectDir);
-                    result = cmd.runSync(c);
-                }
-            }
-
-            res.json( deployJSON );
-        });
+        cmds.push(`git stash`); // prevent changes from breaking the git pull.
+        cmds.push(`git pull ${remote} ${branch}`);
     }
     else {
-        result = cmd.runSync(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
+        cmds.push(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
         // now we can proceed to replicate the changes to the target folder based on config.
 
         let chown = (project_config.applyOwner)?`--chown=${project_config.user}:${(project_config.group || project_config.user)}`:'';
         let chmod = (project_config.applyPerms)?`--chmod=Du=rwx,Dgo=rwx,Fu=rwx,Fgo=rwx`:''; // todo: process 777 (for example) into string
 
-        result = cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
-
-        for (let c of config.cmds.success) {
-            c=c.replace('$path',project_config.path);
-            result = cmd.runSync(c);
-        }
+        cmds.push(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
     }
+
+    for (let c of config.cmds.success) {
+        if (project_config.syncToFolder) c=c.replace('$path',project_config.path);
+        else c=c.replace('$path',projectDir);
+        cmds.push(c);
+    }
+
+    // for logging purposes..
+    for (let c of cmds) {
+        console.log(c);
+    }
+
+    let result = cmd.runSync(cmds.join(' && '));
+    if (result.err) {
+        deployJSON = { error: true, subject: config.email.subjectOnError, message: result.err };
+        if(config.email.sendOnError) mailer.send( deployJSON );
+    }
+    else {
+        deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: result.stdout  };
+        if(config.email.sendOnSuccess) mailer.send( deployJSON );
+    }
+    res.json( deployJSON );
 
     for (let c of config.cmds.finally) {
         c=c.replace('$path',project_config.path);
