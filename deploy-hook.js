@@ -46,12 +46,11 @@ app.use(compression());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-
 app.post(config.route, function(req, res){
     whitelist.refreshIfNeeded();
 
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    var safe = ipRangeCheck(ip, whitelist);
+    var safe = ipRangeCheck(ip, whitelist.cidrs);
     if (!safe) {
         console.log('sender is not an authorized ip('+ip+') from a valid [bitbucket] or [github] origin.');
         res.status(config.preferredPublicErrorCode).json({});

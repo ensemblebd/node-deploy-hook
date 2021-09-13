@@ -4,7 +4,7 @@ const axios = require('axios');
 module.exports = function(config) {
     let self = this;
     this.last_refresh = null;
-    this.whitelist = config.additionalCIDR || [];
+    this.cidrs = config.additionalCIDR || [];
 
     var refresh=function() {
         self.last_refresh = dayjs();
@@ -12,15 +12,15 @@ module.exports = function(config) {
         console.log('refreshing ip whitelist from [github] and [bitbucket]');
         axios.get(config.github).then((response) => {
             for(let cidr of response.data.hooks) {
-                self.whitelist.push(cidr);
+                self.cidrs.push(cidr);
             }
         });
         axios.get(config.bitbucket).then((response) => {
             for(let item of response.data.items) {
-                self.whitelist.push(item.cidr);
+                self.cidrs.push(item.cidr);
             }
         });
-        return self.whitelist;
+        return self.cidrs;
     };
 
     this.refreshIfNeeded = function() {
