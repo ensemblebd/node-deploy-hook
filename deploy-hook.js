@@ -57,14 +57,14 @@ axios.get(config.ipList.bitbucket).then((response) => {
     }
 });
 
-app.post("/", function(req, res){
+app.post(config.route, function(req, res){
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     var safe = ipRangeCheck(ip, whitelist);
     console.log(ip, safe);
 
     var projectDir, deployJSON, payload, repoName, 
         valid = false, ok=false, is_bitbucket = false,
-        remoteBranch = req.query.remote_branch || 'origin',
+        remote = req.query.remote_branch || 'origin',
         localBranch = req.query.local_branch || 'master'
         ;
 
@@ -74,7 +74,7 @@ app.post("/", function(req, res){
             is_bitbucket = true;
             repoName = payload.repository.full_name; // name can have spaces in it, so with bitbucket we should use the fullname. Which will have a folder prefix:   username_or_team/real-repo-name-here
         }
-        projectDir = path.normalize(config.repoRoot+repoName);
+        projectDir = path.normalize(config.repoRoot+'/'+repoName);
     }
 
     // make sure we can even git pull to the target folder..
@@ -87,9 +87,10 @@ app.post("/", function(req, res){
 
     if(ok) {
         cmd.runSync(`cd ${projectDir}`);
+        
         if (config.repoIsWebroot) {
             cmd.runSync(`git stash`);
-            cmd.runSync(`git pull ${remoteBranch} ${localBranch}`, function(err, stdout, stderr){
+            cmd.runSync(`git pull ${remote} ${localBranch}`, function(err, stdout, stderr){
                 if(err){
                     deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
                     if(config.email.sendOnError) mailer.send( deployJSON );
@@ -102,7 +103,7 @@ app.post("/", function(req, res){
             });
         }
         else {
-            cmd.runSync(`git pull ${remoteBranch} ${localBranch}`);
+            cmd.runSync(`git pull ${remote} ${localBranch}`);
         }
     };
 });

@@ -17,8 +17,9 @@ module.exports = {
         },
         transport: 'sample' 
     },
+    route: "/deploy",
     port: 8888,
-    repoRoot: '/var/www/',
+    repoRoot: '/var/www',
     url_pass: '',
 
     ipList: {
