@@ -17,10 +17,8 @@ var express = require('express'),
     cmd=require('node-cmd'),
     path = require("path"),
     fs = require('fs'),
-    dayjs = require('dayjs'),
 
     config = require('./config'),
-    sconfig = require('./config.secrets'),
 
     app = express(),
     server = http.createServer(app).listen( config.port )
@@ -28,9 +26,10 @@ var express = require('express'),
     m_whitelist = require('./whitelist')
     ;
 
-if (sconfig) {
-    config.merge(sconfig);
-}
+try {
+    var sconfig = require('./config.custom');
+    config.merge(sconfig);console.log(config);
+}catch(e){}
 
 var mailer = new m_mailer(config);
 if (config.verifySMTPOnBootup) {
