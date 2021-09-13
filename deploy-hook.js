@@ -161,15 +161,15 @@ app.post(config.route, function(req, res){
 
     // now we take action since the repo path is fine, and the sender provided valid payload info for target branch..
 
-    cmd.runSync(`cd ${projectDir}`);
+    let result = cmd.runSync(`cd ${projectDir}`);
 
     for (let c of config.cmds.before) {
-        cmd.runSync(c);
+        result = cmd.runSync(c);
     }
 
     if (!project_config.syncToFolder) {
-        cmd.runSync(`git stash`); // prevent changes from breaking the git pull.
-        cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
+        result = cmd.runSync(`git stash`); // prevent changes from breaking the git pull.
+        result = cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
             if(err){
                 deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
                 if(config.email.sendOnError) mailer.send( deployJSON );
@@ -178,7 +178,7 @@ app.post(config.route, function(req, res){
                 if(config.email.sendOnSuccess) mailer.send( deployJSON );
 
                 for (let c of config.cmds.success) {
-                    cmd.runSync(c);
+                    result = cmd.runSync(c);
                 }
             }
 
@@ -186,21 +186,21 @@ app.post(config.route, function(req, res){
         });
     }
     else {
-        cmd.runSync(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
+        result = cmd.runSync(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
         // now we can proceed to replicate the changes to the target folder based on config.
 
         let chown = (project_config.applyOwner)?`--chown=${project_config.user}:${(project_config.group || project_config.user)}`:'';
         let chmod = (project_config.applyPerms)?`--chmod=Du=rwx,Dgo=rwx,Fu=rwx,Fgo=rwx`:''; // todo: process 777 (for example) into string
 
-        cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
+        result = cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
 
         for (let c of config.cmds.success) {
-            cmd.runSync(c);
+            result = cmd.runSync(c);
         }
     }
 
     for (let c of config.cmds.finally) {
-        cmd.runSync(c);
+        result = cmd.runSync(c);
     }
 });
 
