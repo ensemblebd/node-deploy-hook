@@ -21,6 +21,11 @@ module.exports = {
     repoRoot: '/var/www/',
     url_pass: '',
 
+    ipList: {
+        github: 'https://api.github.com/meta',
+        bitbucket: 'https://ip-ranges.atlassian.com',
+    },
+
     verifySMTPOnBootup: false,
     repoIsWebroot: true,
 

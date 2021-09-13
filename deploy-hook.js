@@ -46,12 +46,12 @@ app.use(bodyParser.json());
 
 // load the acceptable source ip whitelists..
 var whitelist=[];
-axios.get('https://api.github.com/meta').then((response) => {
+axios.get(config.ipList.github).then((response) => {
     for(let cidr of response.data.hooks) {
         whitelist.push(cidr);
     }
 });
-axios.get('https://ip-ranges.atlassian.com').then((response) => {
+axios.get(config.ipList.bitbucket).then((response) => {
     for(let item of response.data.items) {
         whitelist.push(item.cidr);
     }
