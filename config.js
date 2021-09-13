@@ -36,7 +36,7 @@ module.exports = {
     },
 
     verifySMTPOnBootup: false,
-    rsyncArgs: "au --exclude '.git'",
+    rsyncArgs: "-au --exclude '.git'",
 
     cmds: {
         before: [],
