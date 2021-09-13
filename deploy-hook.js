@@ -58,7 +58,7 @@ app.post(config.route, function(req, res){
         return;
     }
 
-    var projectDir, deployJSON, payload, repoName, 
+    var projectDir, deployJSON, payload, repoName, project_config, 
         valid = false, ok=false, is_bitbucket = false,
         remote = req.query.remote || config.remote,
         branch = req.query.branch || config.branch,
@@ -70,8 +70,31 @@ app.post(config.route, function(req, res){
         if (payload.repository.links && payload.repository.links.self) { // it's enough to assume bitbucket, the keys don't exist on github payloads. But i guess we could do an indexOf for the url.
             is_bitbucket = true;
             repoName = payload.repository.full_name; // name can have spaces in it, so with bitbucket we should use the fullname. Which will have a folder prefix:   username_or_team/real-repo-name-here
+            // let's resolve that down to the repo name only to avoid having subfolders inside our git repo main folder.
+            let start = -1;
+            if ((start = repoName.lastIndexOf('/'))!==-1) {
+                repoName = repoName.substring(start+1);
+            }
         }
         projectDir = path.normalize(config.repoRoot+'/'+repoName);
+
+        var keys = Object.keys(config.repos);
+        for (let name of keys) {
+            if (name === repoName) {
+                project_config = config.repos[name];
+                if (project_config.user && project_config.path && project_config.path.indexOf('$user')!==-1) {
+                    project_config.path = project_config.path.replace('$user',project_config.user);
+                }
+                project_config.path = path.normalize(project_config.path);
+                break;
+            }
+        }
+    }
+
+    if (typeof(project_config) == 'undefined') {
+        console.log('The repository specified by sender is not configured as a repo in config file: '+repoName);
+        res.status(config.preferredPublicErrorCode).json({});
+        return;
     }
 
     // make sure we can even git pull to the target folder..
@@ -85,6 +108,21 @@ app.post(config.route, function(req, res){
         console.log('The server repo path is invalid: '+projectDir);
         res.status(config.preferredPublicErrorCode).json({});
         return;
+    }
+    // let's also check the destination
+    if (project_config.path) {
+        ok = false;
+        fs.access(project_config.path, fs.constants.W_OK, function(err) {
+            if(err) {
+                console.log(err);
+            }
+            else ok = true;
+        });
+        if (!ok) {
+            console.log('The configuration specified an invalid destination for repo('+repoName+'): '+project_config.path);
+            res.status(config.preferredPublicErrorCode).json({});
+            return;
+        }
     }
 
     if (is_bitbucket) {
@@ -135,7 +173,7 @@ app.post(config.route, function(req, res){
 
     cmd.runSync(`cd ${projectDir}`);
 
-    if (config.repoIsWebroot) {
+    if (!project_config.syncToFolder) {
         cmd.runSync(`git stash`); // prevent changes from breaking the git pull.
         cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
             if(err){
@@ -150,8 +188,16 @@ app.post(config.route, function(req, res){
         });
     }
     else {
-        cmd.runSync(`git pull ${remote} ${branch}`);
+        cmd.runSync(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
+        // now we can proceed to replicate the changes to the target folder based on config.
 
+        cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
+        if (project_config.applyOwner) {
+            cmd.run(`chown -R ${project_config.user}:${project_config.group || project_config.user} ${project_config.path}`);
+        }
+        if (project_config.applyPerms) {
+            cmd.run(`chmod -R ${(project_config.perms || 755)} ${project_config.path}`);
+        }
     }
 });
 

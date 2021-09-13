@@ -6,15 +6,10 @@ module.exports = function(config) {
     this.last_refresh = null;
     this.whitelist = [];
 
-    this.refreshIfNeeded = function() {
-        if (self.last_refresh == null) return refresh();
-        var next = self.last_refresh.add(config.refreshInterval, config.refreshIntervalType);
-        if (self.last_refresh.isAfter(next)) return refresh();
-    };
-
     var refresh=function() {
         self.last_refresh = dayjs();
 
+        console.log('refreshing ip whitelist from [github] and [bitbucket]');
         axios.get(config.github).then((response) => {
             for(let cidr of response.data.hooks) {
                 self.whitelist.push(cidr);
@@ -27,4 +22,13 @@ module.exports = function(config) {
         });
         return self.whitelist;
     };
+
+    this.refreshIfNeeded = function() {
+        if (self.last_refresh == null) return refresh();
+        var next = self.last_refresh.add(config.refreshInterval, config.refreshIntervalType);
+        if (self.last_refresh.isAfter(next)) return refresh();
+    };
+
+    // go ahead and preload it..
+    this.refreshIfNeeded();
 };
