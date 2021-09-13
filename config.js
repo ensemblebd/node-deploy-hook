@@ -38,6 +38,12 @@ module.exports = {
     verifySMTPOnBootup: false,
     rsyncArgs: "au --exclude '.git'",
 
+    cmds: {
+        before: [],
+        success: [],
+        finally: []
+    },
+
     repos: {
         "sample-repo-name": {
             syncToFolder: false

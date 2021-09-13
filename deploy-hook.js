@@ -163,6 +163,10 @@ app.post(config.route, function(req, res){
 
     cmd.runSync(`cd ${projectDir}`);
 
+    for (let c of config.cmds.before) {
+        cmd.runSync(c);
+    }
+
     if (!project_config.syncToFolder) {
         cmd.runSync(`git stash`); // prevent changes from breaking the git pull.
         cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
@@ -172,6 +176,10 @@ app.post(config.route, function(req, res){
             } else {
                 deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: stdout  };
                 if(config.email.sendOnSuccess) mailer.send( deployJSON );
+
+                for (let c of config.cmds.success) {
+                    cmd.runSync(c);
+                }
             }
 
             res.json( deployJSON );
@@ -188,6 +196,14 @@ app.post(config.route, function(req, res){
         if (project_config.applyPerms) {
             cmd.run(`chmod -R ${(project_config.perms || 755)} ${project_config.path}`);
         }
+
+        for (let c of config.cmds.success) {
+            cmd.runSync(c);
+        }
+    }
+
+    for (let c of config.cmds.finally) {
+        cmd.runSync(c);
     }
 });
 
