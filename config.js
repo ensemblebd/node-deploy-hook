@@ -20,4 +20,7 @@ module.exports = {
     port: 8888,
     serverRoot: '/var/www/',
     url_pass: '',
+
+    verifySMTPOnBootup: false,
+    pullDirectlyToWebRoot: true
 };

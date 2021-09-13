@@ -28,8 +28,11 @@ var express = require('express'),
 if (sconfig) {
     config.merge(sconfig);
 }
+
 var mailer = new mail(config);
-mailer.verify();
+if (config.verifySMTPOnBootup) {
+    mailer.verify();
+}
 
 // Allow node to be run with proxy passing
 app.enable('trust proxy');
@@ -40,7 +43,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.post("/", function(req, res){
-    var projectDir, deployJSON, payload, valid = false, ok = true,
+    var projectDir, deployJSON, payload, 
+        valid = false, ok = true,
         remoteBranch = req.query.remote_branch || 'origin',
         localBranch = req.query.local_branch || 'master'
         ;
@@ -49,19 +53,23 @@ app.post("/", function(req, res){
         projectDir = path.normalize(config.serverRoot+payload.repository.name);
     }
 
-if(ok) {
-    var deploy = cmd.runSync("cd "+projectDir+" && git stash && git pull "+remoteBranch+" "+localBranch, function(err, stdout, stderr){
-        if(err){
-            deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
-            if(config.email.sendOnError) mailer.send( deployJSON );
-        } else {
-            deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: stdout  };
-            if(config.email.sendOnSuccess) mailer.send( deployJSON );
+    if(ok) {
+        cmd.runSync(`cd ${projectDir}`);
+        if (pullDirectlyToWebRoot) {
+            cmd.runSync(`git stash`);
         }
+        cmd.runSync(`git pull ${remoteBranch} ${localBranch}`, function(err, stdout, stderr){
+            if(err){
+                deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
+                if(config.email.sendOnError) mailer.send( deployJSON );
+            } else {
+                deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: stdout  };
+                if(config.email.sendOnSuccess) mailer.send( deployJSON );
+            }
 
-        res.json( deployJSON );
-    });
-};
+            res.json( deployJSON );
+        });
+    };
 });
 
 console.log((new Date()).toString()+ ":: Node-deploy-hook server listening on port::", config.port, ", environment:: ", app.settings.env);
