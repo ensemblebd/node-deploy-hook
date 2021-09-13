@@ -22,6 +22,7 @@ var express = require('express'),
 
     app = express(),
     m_mailer = require('./mailer'),
+    filedump = require('./filedump'),
     m_whitelist = require('./whitelist')
     ;
 
@@ -47,6 +48,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.post(config.route, function(req, res){
+    filedump('./log/last_request.json', req);
     whitelist.refreshIfNeeded();
 
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
