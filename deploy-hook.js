@@ -61,7 +61,8 @@ app.post(config.route, function(req, res){
     var projectDir, deployJSON, payload, repoName, 
         valid = false, ok=false, is_bitbucket = false,
         remote = req.query.remote || config.remote,
-        branch = req.query.branch || config.branch
+        branch = req.query.branch || config.branch,
+        pass = req.query[config.passwordQueryField] || ''
         ;
 
     if(payload && payload.repository){        // POST request made by github service hook, use the repo name
@@ -113,6 +114,7 @@ app.post(config.route, function(req, res){
             return;
         }
     }
+
     if (!valid) {
         // reaching here means the payload is invalid or malformed. Should be very rare.
         console.log('invalid payload received.');
@@ -120,13 +122,21 @@ app.post(config.route, function(req, res){
         return;
     }
 
+    valid = (config.url_pass==='' || pass === config.url_pass);
+    if (!valid) {
+        // reaching here means the payload is invalid or malformed. Should be very rare.
+        console.log('invalid password in url query string from sender: '+pass);
+        res.status(config.preferredPublicErrorCode).json({});
+        return;
+    }
 
-    // now we take action..
+
+    // now we take action since the repo path is fine, and the sender provided valid payload info for target branch..
 
     cmd.runSync(`cd ${projectDir}`);
 
     if (config.repoIsWebroot) {
-        cmd.runSync(`git stash`);
+        cmd.runSync(`git stash`); // prevent changes from breaking the git pull.
         cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
             if(err){
                 deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
@@ -141,6 +151,7 @@ app.post(config.route, function(req, res){
     }
     else {
         cmd.runSync(`git pull ${remote} ${branch}`);
+
     }
 });
 

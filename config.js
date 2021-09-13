@@ -21,6 +21,7 @@ module.exports = {
     port: 8888,
     repoRoot: '/var/www',
     url_pass: '',
+    passwordQueryField: 'pwd',
     preferredPublicErrorCode: 403,
 
     remote: 'origin',
