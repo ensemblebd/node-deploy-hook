@@ -66,7 +66,7 @@ app.post(config.route, function(req, res){
         pass = req.query[config.passwordQueryField] || ''
         ;
 
-    payload = request.body;
+    payload = req.body;
 
     if(payload && payload.repository){        // POST request made by github service hook, use the repo name
         repoName = payload.repository.name;
