@@ -196,11 +196,11 @@ app.post(config.route, function(req, res){
 
     let result = cmd.runSync(cmds.join(' && '));
     if (result.err) {
-        deployJSON = { error: true, subject: config.email.subjectOnError, message: result.err };
+        deployJSON = { error: true, subject: config.email.subjectOnError, text: result.err };
         if(config.email.sendOnError) mailer.send( deployJSON );
     }
     else {
-        deployJSON = { success: true, subject: config.email.subjectOnSuccess, message: result.stdout  };
+        deployJSON = { success: true, subject: config.email.subjectOnSuccess, text: result.stdout  };
         if(config.email.sendOnSuccess) mailer.send( deployJSON );
     }
     res.json( deployJSON );
