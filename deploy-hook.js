@@ -21,7 +21,6 @@ var express = require('express'),
     config = require('./config'),
 
     app = express(),
-    server = http.createServer(app).listen( config.port )
     m_mailer = require('./mailer'),
     m_whitelist = require('./whitelist')
     ;
@@ -30,6 +29,8 @@ try {
     var sconfig = require('./config.custom');
     config.merge(sconfig);
 }catch(e){}
+
+var server = http.createServer(app).listen( config.port );
 
 var mailer = new m_mailer(config);
 if (config.verifySMTPOnBootup) {
