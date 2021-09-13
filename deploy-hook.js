@@ -48,7 +48,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.post(config.route, function(req, res){
-    filedump('./log/last_request.json', req);
+    filedump('./log/last_request.json', {body: req.body, query: req.query, headers: req.headers, ips: req.ips});
     whitelist.refreshIfNeeded();
 
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
