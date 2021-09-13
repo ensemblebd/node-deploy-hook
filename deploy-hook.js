@@ -178,7 +178,7 @@ app.post(config.route, function(req, res){
         // now we can proceed to replicate the changes to the target folder based on config.
 
         let chown = (project_config.applyOwner)?`--chown=${project_config.user}:${(project_config.group || project_config.user)}`:'';
-        let chmod = (project_config.applyPerms)?`--chmod=Du=rwx,Dgo=rwx,Fu=rwx,Fgo=rwx`:''; // todo: process 777 (for example) into string
+        let chmod = (project_config.applyPerms)?`--chmod=${project_config.perms}`:'';
 
         cmds.push(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
     }
@@ -206,7 +206,8 @@ app.post(config.route, function(req, res){
     res.json( deployJSON );
 
     for (let c of config.cmds.finally) {
-        c=c.replace('$path',project_config.path);
+        if (project_config.syncToFolder) c=c.replace('$path',project_config.path);
+        else c=c.replace('$path',projectDir);
         result = cmd.runSync(c);
     }
 });
