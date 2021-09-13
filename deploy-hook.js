@@ -64,8 +64,8 @@ app.post(config.route, function(req, res){
 
     var projectDir, deployJSON, payload, repoName, 
         valid = false, ok=false, is_bitbucket = false,
-        remote = req.query.remote_branch || 'origin',
-        localBranch = req.query.local_branch || 'master'
+        remote = req.query.remote || config.remote,
+        branch = req.query.branch || config.branch
         ;
 
     if(payload && payload.repository){        // POST request made by github service hook, use the repo name
@@ -86,11 +86,13 @@ app.post(config.route, function(req, res){
     });
 
     if(ok) {
+
+
         cmd.runSync(`cd ${projectDir}`);
-        
+
         if (config.repoIsWebroot) {
             cmd.runSync(`git stash`);
-            cmd.runSync(`git pull ${remote} ${localBranch}`, function(err, stdout, stderr){
+            cmd.runSync(`git pull ${remote} ${branch}`, function(err, stdout, stderr){
                 if(err){
                     deployJSON = { error: true, subject: config.email.subjectOnError, message: err };
                     if(config.email.sendOnError) mailer.send( deployJSON );
@@ -103,9 +105,11 @@ app.post(config.route, function(req, res){
             });
         }
         else {
-            cmd.runSync(`git pull ${remote} ${localBranch}`);
+            cmd.runSync(`git pull ${remote} ${branch}`);
         }
-    };
+    } else {
+        
+    }
 });
 
 console.log((new Date()).toString()+ ":: Node-deploy-hook server listening on port::", config.port, ", environment:: ", app.settings.env);
