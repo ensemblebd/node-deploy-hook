@@ -60,7 +60,7 @@ app.post(config.route, function(req, res){
     }
 
     var projectDir, deployJSON, payload, repoName, project_config, 
-        valid = false, ok=false, is_bitbucket = false,
+        valid = false, is_bitbucket = false,
         remote = req.query.remote || config.remote,
         branch = req.query.branch || config.branch,
         pass = req.query[config.passwordQueryField] || ''
@@ -101,28 +101,15 @@ app.post(config.route, function(req, res){
     }
 
     // make sure we can even git pull to the target folder..
-    fs.accessSync(projectDir, fs.constants.W_OK, function(err) {
-        if(err) {
-            console.log(err);
-        }
-        else ok = true;
-    });
-    if (!ok) {
-        console.log('The server repo path is invalid: '+projectDir);
+    try {fs.accessSync(projectDir, fs.constants.W_OK);}catch(e){
+        console.log('The server repo path is invalid: '+projectDir, e);
         res.status(config.preferredPublicErrorCode).json({});
         return;
     }
     // let's also check the destination
     if (project_config.path) {
-        ok = false;
-        fs.accessSync(project_config.path, fs.constants.W_OK, function(err) {
-            if(err) {
-                console.log(err);
-            }
-            else ok = true;
-        });
-        if (!ok) {
-            console.log('The configuration specified an invalid destination for repo('+repoName+'): '+project_config.path);
+        try {fs.accessSync(project_config.path, fs.constants.W_OK);}catch(e){
+            console.log('The configuration specified an invalid destination for repo('+repoName+'): '+project_config.path, e);
             res.status(config.preferredPublicErrorCode).json({});
             return;
         }
