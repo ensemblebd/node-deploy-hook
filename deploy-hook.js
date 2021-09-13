@@ -164,6 +164,8 @@ app.post(config.route, function(req, res){
     let result = cmd.runSync(`cd ${projectDir}`);
 
     for (let c of config.cmds.before) {
+        if (project_config.syncToFolder) c=c.replace('$path',project_config.path);
+        else c=c.replace('$path',projectDir);
         result = cmd.runSync(c);
     }
 
@@ -178,6 +180,7 @@ app.post(config.route, function(req, res){
                 if(config.email.sendOnSuccess) mailer.send( deployJSON );
 
                 for (let c of config.cmds.success) {
+                    c=c.replace('$path', projectDir);
                     result = cmd.runSync(c);
                 }
             }
@@ -195,11 +198,13 @@ app.post(config.route, function(req, res){
         result = cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
 
         for (let c of config.cmds.success) {
+            c=c.replace('$path',project_config.path);
             result = cmd.runSync(c);
         }
     }
 
     for (let c of config.cmds.finally) {
+        c=c.replace('$path',project_config.path);
         result = cmd.runSync(c);
     }
 });
