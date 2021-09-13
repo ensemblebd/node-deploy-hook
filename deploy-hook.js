@@ -189,13 +189,10 @@ app.post(config.route, function(req, res){
         cmd.runSync(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
         // now we can proceed to replicate the changes to the target folder based on config.
 
-        cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
-        if (project_config.applyOwner) {
-            cmd.run(`chown -R ${project_config.user}:${project_config.group || project_config.user} ${project_config.path}`);
-        }
-        if (project_config.applyPerms) {
-            cmd.run(`chmod -R ${(project_config.perms || 755)} ${project_config.path}`);
-        }
+        let chown = (project_config.applyOwner)?`--chown=${project_config.user}:${(project_config.group || project_config.user)}`:'';
+        let chmod = (project_config.applyPerms)?`--chmod=Du=rwx,Dgo=rwx,Fu=rwx,Fgo=rwx`:''; // todo: process 777 (for example) into string
+
+        cmd.runSync(`rsync ${(project_config.rsyncArgs || config.rsyncArgs)} ${chown} ${chmod} ./${(project_config.repoSubFolderLimit || '')}* ${project_config.path}`);
 
         for (let c of config.cmds.success) {
             cmd.runSync(c);
