@@ -53,7 +53,7 @@ app.post(config.route, function(req, res){
     var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     var safe = ipRangeCheck(ip, whitelist);
     if (!safe) {
-        console.log('sender is not an authorized ip from a valid [bitbucket] or [github] origin.');
+        console.log('sender is not an authorized ip('+ip+') from a valid [bitbucket] or [github] origin.');
         res.status(config.preferredPublicErrorCode).json({});
         return;
     }
