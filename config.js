@@ -18,9 +18,16 @@ module.exports = {
         transport: 'sample' 
     },
     port: 8888,
-    serverRoot: '/var/www/',
+    repoRoot: '/var/www/',
     url_pass: '',
 
     verifySMTPOnBootup: false,
-    pullDirectlyToWebRoot: true
+    repoIsWebroot: true,
+
+    // if [repoIsWebroot] is false, then the following applies:
+    rsync: {
+        basePath: '/var/www',
+        args: "au --exclude '.git'",
+        
+    }
 };
