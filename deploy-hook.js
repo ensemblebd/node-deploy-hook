@@ -187,6 +187,8 @@ app.post(config.route, function(req, res){
         cmds.push(`git pull ${remote} ${branch}`); // no stash, since the repo is always unadulterated & clean. 
         // now we can proceed to replicate the changes to the target folder based on config.
 
+        cmds.push(`sleep 2`); // wait a moment for git which apparently runs async on command line...
+
         let chown = (project_config.applyOwner)?`--chown=${project_config.user}:${(project_config.group || project_config.user)}`:'';
         let chmod = (project_config.applyPerms)?`--chmod=${project_config.perms}`:'';
 
