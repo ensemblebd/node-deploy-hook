@@ -121,6 +121,12 @@ app.post(config.route, function(req, res){
             valid = false;
             for (let change of payload.push.changes) {
                 if (change.new.type==="branch" && change.new.name === branch) {
+                    console.log('target branch matched ('+branch+').');
+                    valid = true;
+                    break;
+                }
+                else if (config.deployMessage && config.deployMessage.length>0 && change.new.target.summary.raw.indexOf(config.deployMessage)!==-1) {
+                    console.log('commit indicates intent to deploy live instantly. permitting..');
                     valid = true;
                     break;
                 }

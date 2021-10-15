@@ -26,6 +26,7 @@ module.exports = {
 
     remote: 'origin',
     branch: 'master',
+    deployMessage: '#deploy-live',
 
     ipList: {
         github: 'https://api.github.com/meta',
