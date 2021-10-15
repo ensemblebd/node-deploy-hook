@@ -89,6 +89,10 @@ app.post(config.route, function(req, res){
                     project_config.path = project_config.path.replace('$user',project_config.user);
                 }
                 project_config.path = path.normalize(project_config.path);
+
+                if (project_config.branch && project_config.branch.length>0) {
+                    branch = project_config.branch;
+                }
                 break;
             }
         }
@@ -120,7 +124,7 @@ app.post(config.route, function(req, res){
         if (valid) {
             valid = false;
             for (let change of payload.push.changes) {
-                if (change.new.type==="branch" && change.new.name === branch) {
+                if (!project_config.requireMessage && change.new.type==="branch" && change.new.name === branch) {
                     console.log('target branch matched ('+branch+').');
                     valid = true;
                     break;

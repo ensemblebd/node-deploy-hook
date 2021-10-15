@@ -59,7 +59,8 @@ module.exports = {
             perms: 775,
 
             path: '/var/www/$user/app/', // specify the full path on server where rsync should copy too. $user is currently only working automatic variable insertion. In this example, notice both end in "app/". Repo may have may folders, we only care about one in this case.
-            repoSubFolderLimit: 'app/' // leave blank to rsync the entire git repo. Otherwise, target a single folder.
+            repoSubFolderLimit: 'app/' // leave blank to rsync the entire git repo. Otherwise, target a single folder.,
+            requireMessage: false
         }
     }
 };
